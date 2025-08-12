@@ -1,70 +1,84 @@
-# Getting Started with Create React App
+# Intrepid
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+**AI-Powered VC Term Sheet Analyzer**
 
-## Available Scripts
+Intrepid empowers founders and investors with instant, comprehensive analysis of venture capital term sheets. Upload your documents and get detailed breakdowns of investment terms, liquidation waterfalls, and founder impact assessments.
 
-In the project directory, you can run:
+## 🚀 Features
 
-### `npm start`
+- **Document Upload**: Support for PDF, DOCX, and TXT term sheets
+- **AI Analysis**: Powered by OpenAI's GPT-4 for accurate term extraction
+- **Plain English Explanations**: Complex legal terms made simple
+- **Founder Impact Assessment**: Identifies founder-friendly vs concerning terms
+- **Waterfall Calculator**: Real-time exit scenario modeling
+- **Visual Dashboard**: Charts and metrics for easy understanding
+- **Gotchas Detection**: Automatically flags potentially problematic clauses
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## 🏗️ Built With
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+- **React** - Frontend framework
+- **Tailwind CSS** - Styling
+- **OpenAI API** - Document analysis
+- **Recharts** - Data visualization
+- **Lucide React** - Icons
 
-### `npm test`
+## 🛠️ Setup
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+1. Clone the repository
+   ```bash
+   git clone https://github.com/Cornjebus/intrepid.git
+   cd intrepid
+   ```
 
-### `npm run build`
+2. Install dependencies
+   ```bash
+   npm install
+   ```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+3. Create environment file
+   ```bash
+   cp .env.example .env.local
+   ```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+4. Add your OpenAI API key to `.env.local`
+   ```
+   REACT_APP_OPENAI_API_KEY=your_openai_api_key_here
+   ```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+5. Start development server
+   ```bash
+   npm start
+   ```
 
-### `npm run eject`
+## 🚀 Deployment
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### Vercel (Recommended)
+1. Connect your GitHub repository to Vercel
+2. Add `REACT_APP_OPENAI_API_KEY` environment variable
+3. Deploy automatically on push
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### Netlify
+1. Connect GitHub repository to Netlify
+2. Set build command: `npm run build`
+3. Set publish directory: `build`
+4. Add environment variables in dashboard
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## 🔒 Security
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+- API keys are handled via environment variables
+- Files are processed securely through OpenAI's API
+- No data is stored locally or logged
 
-## Learn More
+## ⚖️ Legal
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+**Not Legal Advice**: This tool provides analysis for informational purposes only and should not be considered legal advice. Always consult with qualified legal counsel for investment decisions.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## 📧 Contact
 
-### Code Splitting
+Built by Intrepid Finance
+- Website: intrepidfinance.io
+- Phone: 317.207.2235
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## 📄 License
 
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+MIT License - see LICENSE file for details
