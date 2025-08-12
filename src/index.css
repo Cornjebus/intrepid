@@ -1,13 +1,39 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom font - Ethnocentric (optional - remove if not needed) */
+/* @font-face {
+  font-family: 'Ethnocentric';
+  src: url('/assets/Ethnocentric.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+} */
+
+@layer base {
+  body {
+    font-family: 'Open Sans', sans-serif;
+    background-color: #fafafa;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Montserrat', sans-serif;
+  }
+  
+  /* .brand-title {
+    font-family: 'Ethnocentric', 'Montserrat', sans-serif;
+  } */
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+@keyframes pulse-brand {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse-brand {
+  animation: pulse-brand 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }

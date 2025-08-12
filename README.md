@@ -22,6 +22,12 @@ Intrepid empowers founders and investors with instant, comprehensive analysis of
 - **Recharts** - Data visualization
 - **Lucide React** - Icons
 
+## ⚠️ Important: API Key Required
+
+**You must provide your own OpenAI API key for the application to work.**
+
+The API key in `.env.local` needs to be replaced with your valid key. If you see a CORS error or "Failed to fetch" error, it means the API key is invalid or expired.
+
 ## 🛠️ Setup
 
 1. Clone the repository
@@ -53,9 +59,19 @@ Intrepid empowers founders and investors with instant, comprehensive analysis of
 ## 🚀 Deployment
 
 ### Vercel (Recommended)
-1. Connect your GitHub repository to Vercel
-2. Add `REACT_APP_OPENAI_API_KEY` environment variable
-3. Deploy automatically on push
+
+#### Quick Deploy
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Cornjebus/intrepid)
+
+#### Manual Setup
+1. Install Vercel CLI: `npm i -g vercel`
+2. Run `vercel` in project directory
+3. Follow prompts to link to your Vercel account
+4. Add environment variable in Vercel dashboard:
+   - `REACT_APP_OPENAI_API_KEY` = your OpenAI API key
+
+#### Environment Variables Required
+- `REACT_APP_OPENAI_API_KEY` - Your OpenAI API key with GPT-4 access
 
 ### Netlify
 1. Connect GitHub repository to Netlify
