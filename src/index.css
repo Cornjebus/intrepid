@@ -37,3 +37,92 @@
 .animate-pulse-brand {
   animation: pulse-brand 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+
+/* Custom slider styles */
+input[type="range"].slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type="range"].slider::-webkit-slider-track {
+  background: #e5e5e5;
+  height: 8px;
+  border-radius: 4px;
+}
+
+input[type="range"].slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  background: #5093A6;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+  margin-top: -6px;
+  transition: all 0.2s;
+}
+
+input[type="range"].slider::-webkit-slider-thumb:hover {
+  background: #5AC278;
+  transform: scale(1.1);
+}
+
+input[type="range"].slider::-moz-range-track {
+  background: #e5e5e5;
+  height: 8px;
+  border-radius: 4px;
+}
+
+input[type="range"].slider::-moz-range-thumb {
+  background: #5093A6;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+
+input[type="range"].slider::-moz-range-thumb:hover {
+  background: #5AC278;
+  transform: scale(1.1);
+}
+
+/* Print styles */
+@media print {
+  body {
+    font-size: 12pt;
+  }
+  
+  /* Hide navigation and non-essential elements */
+  button,
+  input[type="range"],
+  .no-print,
+  footer {
+    display: none !important;
+  }
+  
+  /* Ensure content fits on page */
+  .bg-white {
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+    page-break-inside: avoid;
+  }
+  
+  /* Calculator specific print styles */
+  #exit-calculator {
+    border-top: 2px solid #5093A6 !important;
+    margin-top: 20px;
+  }
+  
+  /* Adjust grid layouts for print */
+  .grid {
+    display: block !important;
+  }
+  
+  .grid > div {
+    margin-bottom: 15px;
+  }
+}

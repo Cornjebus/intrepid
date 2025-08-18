@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Upload, FileText, DollarSign, TrendingUp, AlertCircle, Calculator, PieChart, Target, Shield, Loader2, CheckCircle, XCircle, ArrowRight, Sparkles } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Upload, FileText, DollarSign, TrendingUp, AlertCircle, Calculator, PieChart, Target, Shield, Loader2, CheckCircle, XCircle, ArrowRight, Sparkles, Brain, Lock, Zap, ChevronDown, ChevronUp, RefreshCw, Download, Printer, Share2 } from 'lucide-react';
+import { BarChart, Bar, PieChart as RechartsPieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { extractTextFromPDF } from '../utils/pdfExtractor';
 
 // Retry function with exponential backoff for rate limits
@@ -32,10 +33,29 @@ const TermSheetAnalyzer = () => {
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showLanding, setShowLanding] = useState(true);
+  const [uploadCollapsed, setUploadCollapsed] = useState(false);
   const [exitScenario, setExitScenario] = useState({
     exitValuation: 100000000,
     yearsToExit: 5
   });
+  
+  // Multiple scenarios for comparison
+  const [scenarios, setScenarios] = useState([
+    { id: 1, name: 'Conservative', exitValuation: 50000000, yearsToExit: 3, active: false },
+    { id: 2, name: 'Base Case', exitValuation: 100000000, yearsToExit: 5, active: true },
+    { id: 3, name: 'Optimistic', exitValuation: 250000000, yearsToExit: 5, active: false }
+  ]);
+
+  // Auto-collapse upload section and scroll to calculator after analysis
+  useEffect(() => {
+    if (analysis) {
+      setUploadCollapsed(true);
+      setTimeout(() => {
+        document.getElementById('exit-calculator')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
+    }
+  }, [analysis]);
 
   const handleFileUpload = (event) => {
     const uploadedFiles = Array.from(event.target.files);
@@ -412,21 +432,324 @@ IMPORTANT: Extract whatever you can find. It's better to have partial data than 
 
   const waterfall = calculateWaterfall(exitScenario.exitValuation, exitScenario.yearsToExit);
   const costOfCapital = calculateCostOfCapital(analysis, exitScenario.yearsToExit);
+  
+  // Export to CSV function
+  const exportToCSV = () => {
+    if (!analysis || !waterfall) return;
+    
+    const csvData = [
+      ['Intrepid VC Term Sheet Analysis'],
+      [''],
+      ['Exit Scenario Analysis'],
+      ['Exit Valuation', `$${(exitScenario.exitValuation / 1000000).toFixed(1)}M`],
+      ['Years to Exit', exitScenario.yearsToExit],
+      [''],
+      ['Returns'],
+      ['Investor Return', `$${(waterfall.investorReturn / 1000000).toFixed(1)}M`],
+      ['Investor Multiple', `${waterfall.investorMultiple.toFixed(1)}x`],
+      ['Founder Return', `$${(waterfall.founderReturn / 1000000).toFixed(1)}M`],
+      ['Founder Percentage', `${waterfall.founderPct.toFixed(1)}%`],
+      [''],
+      ['Investment Terms'],
+      ['Pre-Money Valuation', `$${((analysis.investmentTerms?.preMoney || 0) / 1000000).toFixed(1)}M`],
+      ['Investment Amount', `$${((analysis.investmentTerms?.investment || 0) / 1000000).toFixed(1)}M`],
+      ['Ownership Percentage', `${analysis.investmentTerms?.statedOwnershipPct || 0}%`],
+      ['Liquidation Preference', `${analysis.liquidation?.liqPrefMultiple || 1}x`],
+      [''],
+      ['Scenario Comparison'],
+      ...scenarios.map(s => {
+        const w = calculateWaterfall(s.exitValuation, s.yearsToExit);
+        return [
+          s.name,
+          `$${(s.exitValuation / 1000000).toFixed(0)}M`,
+          `${s.yearsToExit}yr`,
+          w ? `$${(w.founderReturn / 1000000).toFixed(1)}M` : 'N/A'
+        ];
+      })
+    ];
+    
+    const csv = csvData.map(row => row.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `term-sheet-analysis-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+  
+  // Share results function
+  const shareResults = () => {
+    if (!analysis) return;
+    
+    const shareData = {
+      analysis: analysis.investmentTerms,
+      scenarios: scenarios,
+      exitScenario: exitScenario
+    };
+    
+    const encoded = btoa(JSON.stringify(shareData));
+    const shareUrl = `${window.location.origin}${window.location.pathname}?data=${encoded}`;
+    
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      alert('Share link copied to clipboard!');
+    }).catch(() => {
+      prompt('Copy this link to share:', shareUrl);
+    });
+  };
+
+  // Landing Page Component
+  const LandingPage = () => (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {/* Green arrow logo */}
+              <svg width="40" height="40" viewBox="0 0 100 100" className="mr-2">
+                <path d="M20 25 L20 75 L50 50 Z" fill="#5AC278" />
+                <path d="M45 25 L45 75 L75 50 Z" fill="#5AC278" opacity="0.7" />
+              </svg>
+              <span className="text-2xl font-montserrat font-bold text-intrepid-green tracking-wider">INTREPID</span>
+            </div>
+            <p className="text-intrepid-dark/60 text-sm font-open-sans italic hidden md:block">VC Term Sheet Analyzer</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Hero Section */}
+      <div className="max-w-7xl mx-auto px-6 py-12">
+        <div className="text-center mb-16">
+          <div className="flex justify-center mb-6">
+            <div className="h-20 w-20 bg-gradient-to-br from-intrepid-green to-intrepid-blue rounded-full flex items-center justify-center shadow-xl">
+              <Brain className="h-10 w-10 text-white" />
+            </div>
+          </div>
+          <h1 className="text-5xl md:text-6xl font-montserrat font-bold text-intrepid-dark mb-4">
+            Understand Your VC Terms
+            <span className="block text-intrepid-green mt-2">In Minutes</span>
+          </h1>
+          <p className="text-xl text-intrepid-dark/70 font-open-sans max-w-3xl mx-auto mb-8">
+            AI-powered analysis of term sheets, SAFEs, and investment documents. 
+            Get instant insights into what your funding terms really mean for your future.
+          </p>
+          <button
+            onClick={() => setShowLanding(false)}
+            className="bg-intrepid-green text-white px-8 py-4 rounded-lg font-montserrat font-semibold text-lg hover:bg-intrepid-green/90 transition-all transform hover:scale-105 shadow-lg inline-flex items-center"
+          >
+            Start Free Analysis
+            <ArrowRight className="ml-2 h-5 w-5" />
+          </button>
+        </div>
+
+        {/* How It Works */}
+        <div className="mb-16">
+          <h2 className="text-3xl font-montserrat font-bold text-center text-intrepid-dark mb-12">
+            How It Works
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="text-center">
+              <div className="bg-white rounded-lg p-6 shadow-lg hover:shadow-xl transition-shadow">
+                <div className="h-16 w-16 bg-intrepid-green/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Upload className="h-8 w-8 text-intrepid-green" />
+                </div>
+                <h3 className="text-xl font-montserrat font-semibold text-intrepid-dark mb-2">
+                  1. Upload Your Document
+                </h3>
+                <p className="text-intrepid-dark/70 font-open-sans">
+                  Upload your term sheet, SAFE, or investment agreement in PDF or text format
+                </p>
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="bg-white rounded-lg p-6 shadow-lg hover:shadow-xl transition-shadow">
+                <div className="h-16 w-16 bg-intrepid-blue/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Brain className="h-8 w-8 text-intrepid-blue" />
+                </div>
+                <h3 className="text-xl font-montserrat font-semibold text-intrepid-dark mb-2">
+                  2. AI Analyzes Terms
+                </h3>
+                <p className="text-intrepid-dark/70 font-open-sans">
+                  Our AI extracts and interprets key terms, identifying potential gotchas
+                </p>
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="bg-white rounded-lg p-6 shadow-lg hover:shadow-xl transition-shadow">
+                <div className="h-16 w-16 bg-intrepid-green/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Calculator className="h-8 w-8 text-intrepid-green" />
+                </div>
+                <h3 className="text-xl font-montserrat font-semibold text-intrepid-dark mb-2">
+                  3. Model Your Outcomes
+                </h3>
+                <p className="text-intrepid-dark/70 font-open-sans">
+                  Interactive calculator shows exactly what you'll make at different exit scenarios
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Key Features */}
+        <div className="mb-16">
+          <h2 className="text-3xl font-montserrat font-bold text-center text-intrepid-dark mb-12">
+            What You'll Discover
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="bg-white rounded-lg p-6 shadow-md hover:shadow-lg transition-shadow">
+              <DollarSign className="h-8 w-8 text-intrepid-green mb-3" />
+              <h3 className="font-montserrat font-semibold text-intrepid-dark mb-2">True Cost of Capital</h3>
+              <p className="text-intrepid-dark/70 font-open-sans text-sm">
+                Understand the real APR of your funding including liquidation preferences
+              </p>
+            </div>
+            <div className="bg-white rounded-lg p-6 shadow-md hover:shadow-lg transition-shadow">
+              <Shield className="h-8 w-8 text-intrepid-blue mb-3" />
+              <h3 className="font-montserrat font-semibold text-intrepid-dark mb-2">Control & Governance</h3>
+              <p className="text-intrepid-dark/70 font-open-sans text-sm">
+                See how board composition and voting rights affect your control
+              </p>
+            </div>
+            <div className="bg-white rounded-lg p-6 shadow-md hover:shadow-lg transition-shadow">
+              <TrendingUp className="h-8 w-8 text-intrepid-green mb-3" />
+              <h3 className="font-montserrat font-semibold text-intrepid-dark mb-2">Exit Waterfall</h3>
+              <p className="text-intrepid-dark/70 font-open-sans text-sm">
+                Calculate exactly what you'll receive at different exit valuations
+              </p>
+            </div>
+            <div className="bg-white rounded-lg p-6 shadow-md hover:shadow-lg transition-shadow">
+              <AlertCircle className="h-8 w-8 text-orange-500 mb-3" />
+              <h3 className="font-montserrat font-semibold text-intrepid-dark mb-2">Hidden Gotchas</h3>
+              <p className="text-intrepid-dark/70 font-open-sans text-sm">
+                Identify concerning provisions that could impact your ownership
+              </p>
+            </div>
+            <div className="bg-white rounded-lg p-6 shadow-md hover:shadow-lg transition-shadow">
+              <PieChart className="h-8 w-8 text-intrepid-blue mb-3" />
+              <h3 className="font-montserrat font-semibold text-intrepid-dark mb-2">Dilution Analysis</h3>
+              <p className="text-intrepid-dark/70 font-open-sans text-sm">
+                Understand how option pools and future rounds affect your stake
+              </p>
+            </div>
+            <div className="bg-white rounded-lg p-6 shadow-md hover:shadow-lg transition-shadow">
+              <Sparkles className="h-8 w-8 text-intrepid-green mb-3" />
+              <h3 className="font-montserrat font-semibold text-intrepid-dark mb-2">Plain English</h3>
+              <p className="text-intrepid-dark/70 font-open-sans text-sm">
+                Complex legal terms explained in language you can understand
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Trust Section */}
+        <div className="bg-gradient-to-r from-intrepid-green/10 to-intrepid-blue/10 rounded-lg p-8 mb-16">
+          <h2 className="text-3xl font-montserrat font-bold text-center text-intrepid-dark mb-8">
+            Your Security is Our Priority
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="text-center">
+              <Lock className="h-12 w-12 text-intrepid-green mx-auto mb-3" />
+              <h3 className="font-montserrat font-semibold text-intrepid-dark mb-2">No Data Storage</h3>
+              <p className="text-intrepid-dark/70 font-open-sans text-sm">
+                Your documents are analyzed in real-time and never stored on our servers
+              </p>
+            </div>
+            <div className="text-center">
+              <Shield className="h-12 w-12 text-intrepid-blue mx-auto mb-3" />
+              <h3 className="font-montserrat font-semibold text-intrepid-dark mb-2">Bank-Level Encryption</h3>
+              <p className="text-intrepid-dark/70 font-open-sans text-sm">
+                All data transmission is encrypted using industry-standard protocols
+              </p>
+            </div>
+            <div className="text-center">
+              <Zap className="h-12 w-12 text-intrepid-green mx-auto mb-3" />
+              <h3 className="font-montserrat font-semibold text-intrepid-dark mb-2">Instant Processing</h3>
+              <p className="text-intrepid-dark/70 font-open-sans text-sm">
+                Analysis happens in seconds with results delivered immediately
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* CTA Section */}
+        <div className="text-center mb-16">
+          <h2 className="text-3xl font-montserrat font-bold text-intrepid-dark mb-4">
+            Ready to Understand Your Terms?
+          </h2>
+          <p className="text-xl text-intrepid-dark/70 font-open-sans mb-8">
+            Join thousands of founders who've gained clarity on their funding terms
+          </p>
+          <button
+            onClick={() => setShowLanding(false)}
+            className="bg-gradient-to-r from-intrepid-green to-intrepid-blue text-white px-10 py-4 rounded-lg font-montserrat font-semibold text-lg hover:shadow-xl transition-all transform hover:scale-105 inline-flex items-center"
+          >
+            Start Your Free Analysis
+            <ArrowRight className="ml-3 h-6 w-6" />
+          </button>
+        </div>
+
+        {/* Scroll indicator */}
+        <div className="text-center pb-8">
+          <ChevronDown className="h-8 w-8 text-intrepid-gray animate-bounce mx-auto" />
+        </div>
+      </div>
+    </div>
+  );
+
+  // Show landing page if no analysis has been done yet
+  if (showLanding && !analysis) {
+    return <LandingPage />;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Header with Intrepid branding */}
-      <div className="bg-intrepid-dark">
+      <div className="bg-white border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <img 
-                src="/assets/logos/intrepid-horizontal.svg" 
-                alt="Intrepid Finance" 
-                className="h-10 w-auto"
-              />
+            <div className="flex items-center gap-3">
+              <div className="flex items-center cursor-pointer" onClick={() => {
+                  setShowLanding(true);
+                  setAnalysis(null);
+                  setFiles([]);
+                  setUploadCollapsed(false);
+                }}>
+                {/* Green arrow logo */}
+                <svg width="40" height="40" viewBox="0 0 100 100" className="mr-2">
+                  <path d="M20 25 L20 75 L50 50 Z" fill="#5AC278" />
+                  <path d="M45 25 L45 75 L75 50 Z" fill="#5AC278" opacity="0.7" />
+                </svg>
+                <span className="text-2xl font-montserrat font-bold text-intrepid-green tracking-wider">INTREPID</span>
+              </div>
             </div>
-            <p className="text-intrepid-gray text-sm font-open-sans italic">providing capital for business growth</p>
+            <div className="flex items-center gap-4">
+              {analysis && (
+                <button
+                  onClick={() => {
+                    setFiles([]);
+                    setAnalysis(null);
+                    setUploadCollapsed(false);
+                    setError('');
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 text-intrepid-dark border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors font-open-sans text-sm"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  New Analysis
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setShowLanding(true);
+                  setAnalysis(null);
+                  setFiles([]);
+                  setUploadCollapsed(false);
+                }}
+                className="flex items-center gap-2 px-5 py-2 bg-intrepid-green text-white rounded-lg hover:bg-intrepid-green/90 transition-all font-open-sans text-sm shadow-sm"
+              >
+                Home
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -451,165 +774,559 @@ IMPORTANT: Extract whatever you can find. It's better to have partial data than 
           </div>
         </div>
 
-        {/* Upload Section */}
-        <div className="bg-white rounded-lg shadow-md p-6 border border-intrepid-gray/20">
-          <h2 className="text-xl font-montserrat font-semibold mb-4 flex items-center text-intrepid-dark">
-            <Upload className="mr-2 text-intrepid-green" /> Upload Documents
-          </h2>
-        
-          <div className="border-2 border-dashed border-intrepid-green/30 rounded-lg p-8 text-center hover:border-intrepid-green/50 transition-all hover:bg-intrepid-green/5 group">
-            <input
-              type="file"
-              multiple
-              accept=".pdf,.txt,.doc,.docx"
-              onChange={handleFileUpload}
-              className="hidden"
-              id="file-upload"
-            />
-            <label htmlFor="file-upload" className="cursor-pointer">
-              <div className="mx-auto h-16 w-16 bg-intrepid-green/10 rounded-full flex items-center justify-center mb-4 group-hover:bg-intrepid-green/20 transition-colors">
-                <FileText className="h-8 w-8 text-intrepid-green" />
+        {/* Upload Section - Collapsible */}
+        {uploadCollapsed && analysis ? (
+          // Collapsed state - show compact status bar
+          <div className="bg-white rounded-lg shadow-md p-4 border border-intrepid-gray/20 flex items-center justify-between">
+            <div className="flex items-center">
+              <CheckCircle className="h-5 w-5 text-intrepid-green mr-3" />
+              <div>
+                <span className="font-montserrat font-semibold text-intrepid-dark">Analysis Complete</span>
+                <span className="text-intrepid-dark/60 font-open-sans text-sm ml-3">
+                  {files[0]?.name || 'Document analyzed'}
+                </span>
               </div>
-              <p className="text-intrepid-dark font-montserrat font-semibold mb-2">Upload Your Term Sheet</p>
-              <p className="text-sm text-intrepid-dark/70 font-open-sans">Click to browse or drag and drop</p>
-              <p className="text-xs text-intrepid-blue mt-2 font-open-sans">Supports PDF, TXT, DOC, DOCX up to 10MB</p>
-            </label>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => {
+                  setFiles([]);
+                  setAnalysis(null);
+                  setUploadCollapsed(false);
+                  setError('');
+                }}
+                className="text-intrepid-blue hover:text-intrepid-green transition-colors flex items-center gap-2 font-open-sans text-sm"
+              >
+                <RefreshCw className="h-4 w-4" />
+                New Analysis
+              </button>
+              <button
+                onClick={() => setUploadCollapsed(false)}
+                className="text-intrepid-gray hover:text-intrepid-dark transition-colors"
+              >
+                <ChevronDown className="h-5 w-5" />
+              </button>
+            </div>
           </div>
+        ) : (
+          // Expanded state - show full upload interface
+          <div className="bg-white rounded-lg shadow-md p-6 border border-intrepid-gray/20">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-montserrat font-semibold flex items-center text-intrepid-dark">
+                <Upload className="mr-2 text-intrepid-green" /> Upload Documents
+              </h2>
+              {analysis && (
+                <button
+                  onClick={() => setUploadCollapsed(true)}
+                  className="text-intrepid-gray hover:text-intrepid-dark transition-colors"
+                >
+                  <ChevronUp className="h-5 w-5" />
+                </button>
+              )}
+            </div>
+          
+            <div className="border-2 border-dashed border-intrepid-green/30 rounded-lg p-8 text-center hover:border-intrepid-green/50 transition-all hover:bg-intrepid-green/5 group">
+              <input
+                type="file"
+                multiple
+                accept=".pdf,.txt,.doc,.docx"
+                onChange={handleFileUpload}
+                className="hidden"
+                id="file-upload"
+              />
+              <label htmlFor="file-upload" className="cursor-pointer">
+                <div className="mx-auto h-16 w-16 bg-intrepid-green/10 rounded-full flex items-center justify-center mb-4 group-hover:bg-intrepid-green/20 transition-colors">
+                  <FileText className="h-8 w-8 text-intrepid-green" />
+                </div>
+                <p className="text-intrepid-dark font-montserrat font-semibold mb-2">Upload Your Term Sheet</p>
+                <p className="text-sm text-intrepid-dark/70 font-open-sans">Click to browse or drag and drop</p>
+                <p className="text-xs text-intrepid-blue mt-2 font-open-sans">Supports PDF, TXT, DOC, DOCX up to 10MB</p>
+              </label>
+            </div>
 
-          {files.length > 0 && (
-            <div className="mt-6 p-4 bg-intrepid-green/5 rounded-lg border border-intrepid-green/20">
-              <h3 className="font-montserrat font-semibold mb-3 text-intrepid-dark flex items-center">
-                <CheckCircle className="h-5 w-5 mr-2 text-intrepid-green" />
-                Files Ready for Analysis
-              </h3>
-              <div className="space-y-2">
-                {files.map((file, index) => (
-                  <div key={index} className="flex items-center justify-between p-2 bg-white rounded-lg">
-                    <div className="flex items-center">
-                      <div className="h-8 w-8 bg-intrepid-green/10 rounded flex items-center justify-center mr-3">
-                        <FileText className="h-4 w-4 text-intrepid-green" />
+            {files.length > 0 && (
+              <div className="mt-6 p-4 bg-intrepid-green/5 rounded-lg border border-intrepid-green/20">
+                <h3 className="font-montserrat font-semibold mb-3 text-intrepid-dark flex items-center">
+                  <CheckCircle className="h-5 w-5 mr-2 text-intrepid-green" />
+                  Files Ready for Analysis
+                </h3>
+                <div className="space-y-2">
+                  {files.map((file, index) => (
+                    <div key={index} className="flex items-center justify-between p-2 bg-white rounded-lg">
+                      <div className="flex items-center">
+                        <div className="h-8 w-8 bg-intrepid-green/10 rounded flex items-center justify-center mr-3">
+                          <FileText className="h-4 w-4 text-intrepid-green" />
+                        </div>
+                        <span className="text-sm text-intrepid-dark font-open-sans font-medium">
+                          {file.name}
+                        </span>
                       </div>
-                      <span className="text-sm text-intrepid-dark font-open-sans font-medium">
-                        {file.name}
+                      <span className="text-xs text-intrepid-dark/60 font-open-sans">
+                        {(file.size / 1024).toFixed(1)} KB
                       </span>
                     </div>
-                    <span className="text-xs text-intrepid-dark/60 font-open-sans">
-                      {(file.size / 1024).toFixed(1)} KB
-                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {error && (
+              <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start">
+                <XCircle className="h-5 w-5 text-red-600 mt-0.5 mr-3 flex-shrink-0" />
+                <div>
+                  <p className="text-red-800 font-montserrat font-semibold text-sm">Analysis Error</p>
+                  <p className="text-red-700 font-open-sans text-sm mt-1">{error}</p>
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={analyzeTermSheet}
+              disabled={files.length === 0 || loading}
+              className="mt-6 w-full bg-intrepid-green text-white py-3 px-6 rounded-lg font-montserrat font-semibold hover:bg-intrepid-green/90 disabled:bg-intrepid-gray disabled:cursor-not-allowed transition-all transform hover:scale-[1.02] shadow-md flex items-center justify-center"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="animate-spin h-5 w-5 mr-2" />
+                  Analyzing Document...
+                </>
+              ) : (
+                'Analyze Term Sheet'
+              )}
+            </button>
+            
+            {/* Alternative CTA when no analysis */}
+            {!analysis && (
+              <div className="mt-6 p-4 bg-gradient-to-r from-intrepid-green/10 to-intrepid-blue/10 rounded-lg border border-intrepid-green/20">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Sparkles className="h-5 w-5 mr-2 text-intrepid-green" />
+                    <span className="text-intrepid-dark font-montserrat font-semibold">Looking for better terms?</span>
                   </div>
+                  <a
+                    href="https://intrepidtech.io/application/ae231301-fc3f-4bcc-9a76-67df5fe2749d"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-intrepid-green font-open-sans font-semibold hover:text-intrepid-blue transition-colors"
+                  >
+                    Explore Intrepid Funding →
+                  </a>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Exit Waterfall Calculator - MOVED TO TOP */}
+        {analysis && analysis.investmentTerms && analysis.liquidation && (
+          <div id="exit-calculator" className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow p-8 border border-gray-100">
+            <div className="flex items-center justify-between mb-8">
+              <h3 className="text-2xl font-montserrat font-bold text-intrepid-dark flex items-center">
+                <div className="h-10 w-10 bg-gradient-to-br from-intrepid-blue/10 to-intrepid-green/10 rounded-lg flex items-center justify-center mr-3">
+                  <Calculator className="h-5 w-5 text-intrepid-blue" />
+                </div>
+                Exit Waterfall Calculator
+              </h3>
+              <span className="text-xs font-open-sans text-intrepid-dark/50 uppercase tracking-wider">Interactive Model</span>
+            </div>
+            
+            {/* Scenario Quick Select */}
+            <div className="mb-8 p-4 bg-gray-50 rounded-lg">
+              <p className="text-xs font-montserrat font-semibold text-intrepid-dark/60 uppercase tracking-wider mb-3">Quick Scenarios</p>
+              <div className="flex flex-wrap gap-2">
+                {scenarios.map(scenario => (
+                  <button
+                    key={scenario.id}
+                    onClick={() => {
+                      setExitScenario({
+                        exitValuation: scenario.exitValuation,
+                        yearsToExit: scenario.yearsToExit
+                      });
+                      setScenarios(scenarios.map(s => ({
+                        ...s,
+                        active: s.id === scenario.id
+                      })));
+                    }}
+                    className={`px-5 py-2.5 rounded-full font-open-sans text-sm transition-all ${
+                      scenario.active 
+                        ? 'bg-gradient-to-r from-intrepid-green to-intrepid-blue text-white shadow-sm' 
+                        : 'bg-white text-intrepid-dark hover:shadow-sm border border-gray-200'
+                    }`}
+                  >
+                    {scenario.name}
+                    <span className="ml-2 text-xs opacity-80">
+                      ${(scenario.exitValuation / 1000000).toFixed(0)}M
+                    </span>
+                  </button>
                 ))}
               </div>
             </div>
-          )}
-
-          {error && (
-            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start">
-              <XCircle className="h-5 w-5 text-red-600 mt-0.5 mr-3 flex-shrink-0" />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
               <div>
-                <p className="text-red-800 font-montserrat font-semibold text-sm">Analysis Error</p>
-                <p className="text-red-700 font-open-sans text-sm mt-1">{error}</p>
-              </div>
-            </div>
-          )}
-
-          <button
-            onClick={analyzeTermSheet}
-            disabled={files.length === 0 || loading}
-            className="mt-6 w-full bg-intrepid-green text-white py-3 px-6 rounded-lg font-montserrat font-semibold hover:bg-intrepid-green/90 disabled:bg-intrepid-gray disabled:cursor-not-allowed transition-all transform hover:scale-[1.02] shadow-md flex items-center justify-center"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="animate-spin h-5 w-5 mr-2" />
-                Analyzing Document...
-              </>
-            ) : (
-              'Analyze Term Sheet'
-            )}
-          </button>
-          
-          {/* Alternative CTA when no analysis */}
-          {!analysis && (
-            <div className="mt-6 p-4 bg-gradient-to-r from-intrepid-green/10 to-intrepid-blue/10 rounded-lg border border-intrepid-green/20">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <Sparkles className="h-5 w-5 mr-2 text-intrepid-green" />
-                  <span className="text-intrepid-dark font-montserrat font-semibold">Looking for better terms?</span>
+                <label className="block text-sm font-montserrat font-semibold text-intrepid-dark mb-2">
+                  Exit Valuation
+                </label>
+                <div className="space-y-2">
+                  <input
+                    type="range"
+                    min="10"
+                    max="500"
+                    value={exitScenario.exitValuation / 1000000}
+                    onChange={(e) => setExitScenario({
+                      ...exitScenario,
+                      exitValuation: e.target.value * 1000000
+                    })}
+                    className="w-full h-2 bg-intrepid-gray/30 rounded-lg appearance-none cursor-pointer slider"
+                  />
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-intrepid-dark/60 font-open-sans">$</span>
+                    <input
+                      type="number"
+                      value={exitScenario.exitValuation / 1000000}
+                      onChange={(e) => setExitScenario({
+                        ...exitScenario,
+                        exitValuation: e.target.value * 1000000
+                      })}
+                      className="w-24 px-3 py-1 border border-intrepid-gray/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-intrepid-blue font-open-sans"
+                    />
+                    <span className="text-sm text-intrepid-dark/60 font-open-sans">Million</span>
+                  </div>
                 </div>
-                <a
-                  href="https://intrepidtech.io/application/ae231301-fc3f-4bcc-9a76-67df5fe2749d"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-intrepid-green font-open-sans font-semibold hover:text-intrepid-blue transition-colors"
-                >
-                  Explore Intrepid Funding →
-                </a>
+              </div>
+              <div>
+                <label className="block text-sm font-montserrat font-semibold text-intrepid-dark mb-2">
+                  Years to Exit
+                </label>
+                <div className="space-y-2">
+                  <input
+                    type="range"
+                    min="1"
+                    max="10"
+                    value={exitScenario.yearsToExit}
+                    onChange={(e) => setExitScenario({
+                      ...exitScenario,
+                      yearsToExit: parseInt(e.target.value)
+                    })}
+                    className="w-full h-2 bg-intrepid-gray/30 rounded-lg appearance-none cursor-pointer slider"
+                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      value={exitScenario.yearsToExit}
+                      onChange={(e) => setExitScenario({
+                        ...exitScenario,
+                        yearsToExit: parseInt(e.target.value)
+                      })}
+                      className="w-24 px-3 py-1 border border-intrepid-gray/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-intrepid-blue font-open-sans"
+                      min="1"
+                      max="10"
+                    />
+                    <span className="text-sm text-intrepid-dark/60 font-open-sans">Years</span>
+                  </div>
+                </div>
               </div>
             </div>
-          )}
-        </div>
+
+            {waterfall && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                <div className="bg-white rounded-xl p-6 border border-gray-100 hover:shadow-sm transition-all">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="h-10 w-10 bg-intrepid-blue/10 rounded-lg flex items-center justify-center">
+                      <TrendingUp className="h-5 w-5 text-intrepid-blue" />
+                    </div>
+                    <span className="text-xs font-open-sans text-intrepid-dark/50 uppercase tracking-wider">Investor</span>
+                  </div>
+                  <p className="text-3xl font-montserrat font-bold text-intrepid-dark mb-1">
+                    ${(waterfall.investorReturn / 1000000).toFixed(1)}M
+                  </p>
+                  <p className="text-sm text-intrepid-dark/60 font-open-sans">
+                    <span className="font-semibold text-intrepid-blue">{waterfall.investorMultiple.toFixed(1)}x</span> multiple
+                  </p>
+                </div>
+                <div className="bg-white rounded-xl p-6 border border-gray-100 hover:shadow-sm transition-all">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="h-10 w-10 bg-intrepid-green/10 rounded-lg flex items-center justify-center">
+                      <DollarSign className="h-5 w-5 text-intrepid-green" />
+                    </div>
+                    <span className="text-xs font-open-sans text-intrepid-dark/50 uppercase tracking-wider">Founder</span>
+                  </div>
+                  <p className="text-3xl font-montserrat font-bold text-intrepid-dark mb-1">
+                    ${(waterfall.founderReturn / 1000000).toFixed(1)}M
+                  </p>
+                  <p className="text-sm text-intrepid-dark/60 font-open-sans">
+                    <span className="font-semibold text-intrepid-green">{waterfall.founderPct.toFixed(1)}%</span> of exit
+                  </p>
+                </div>
+              </div>
+            )}
+            
+            {/* Chart Visualizations */}
+            {waterfall && analysis && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Payout Distribution Bar Chart */}
+                <div className="bg-white rounded-xl p-6 border border-gray-100">
+                  <div className="flex items-center justify-between mb-6">
+                    <h4 className="text-lg font-montserrat font-semibold text-intrepid-dark">
+                      Payout Distribution
+                    </h4>
+                    <div className="h-8 w-8 bg-gradient-to-br from-intrepid-green/10 to-intrepid-blue/10 rounded-lg flex items-center justify-center">
+                      <DollarSign className="h-4 w-4 text-intrepid-green" />
+                    </div>
+                  </div>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart
+                      data={[
+                        {
+                          name: 'Liquidation\nPreference',
+                          value: (analysis.investmentTerms?.investment || 0) * (analysis.liquidation?.liqPrefMultiple || 1) / 1000000,
+                          fill: '#ef4444'
+                        },
+                        {
+                          name: 'Investor\nPayout',
+                          value: waterfall.investorReturn / 1000000,
+                          fill: '#5093A6'
+                        },
+                        {
+                          name: 'Founder\nPayout',
+                          value: waterfall.founderReturn / 1000000,
+                          fill: '#5AC278'
+                        },
+                        {
+                          name: 'Option\nPool',
+                          value: (exitScenario.exitValuation * ((analysis.investmentTerms?.optionPoolPct || 10) / 100)) / 1000000,
+                          fill: '#f59e0b'
+                        }
+                      ]}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
+                      <XAxis 
+                        dataKey="name" 
+                        tick={{ fontSize: 11, fill: '#1C1F21' }}
+                        angle={0}
+                      />
+                      <YAxis 
+                        tick={{ fontSize: 12, fill: '#1C1F21' }}
+                        label={{ value: '$ Millions', angle: -90, position: 'insideLeft', style: { fontSize: 12, fill: '#1C1F21' } }}
+                      />
+                      <Tooltip 
+                        formatter={(value) => `$${value.toFixed(1)}M`}
+                        contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e5e5', borderRadius: '8px' }}
+                      />
+                      <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                        {[
+                          { fill: '#ef4444' },
+                          { fill: '#5093A6' },
+                          { fill: '#5AC278' },
+                          { fill: '#f59e0b' }
+                        ].map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Ownership Distribution Pie Chart */}
+                <div className="bg-white rounded-xl p-6 border border-gray-100">
+                  <div className="flex items-center justify-between mb-6">
+                    <h4 className="text-lg font-montserrat font-semibold text-intrepid-dark">
+                      Post-Investment Ownership
+                    </h4>
+                    <div className="h-8 w-8 bg-gradient-to-br from-intrepid-blue/10 to-intrepid-green/10 rounded-lg flex items-center justify-center">
+                      <PieChart className="h-4 w-4 text-intrepid-blue" />
+                    </div>
+                  </div>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <RechartsPieChart>
+                      <Pie
+                        data={[
+                          { 
+                            name: 'Investors', 
+                            value: analysis.investmentTerms?.statedOwnershipPct || 25,
+                            fill: '#5093A6'
+                          },
+                          { 
+                            name: 'Founders', 
+                            value: 100 - (analysis.investmentTerms?.statedOwnershipPct || 25) - (analysis.investmentTerms?.optionPoolPct || 10),
+                            fill: '#5AC278'
+                          },
+                          { 
+                            name: 'Option Pool', 
+                            value: analysis.investmentTerms?.optionPoolPct || 10,
+                            fill: '#f59e0b'
+                          }
+                        ]}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, value }) => `${name}: ${value.toFixed(0)}%`}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        <Cell fill="#5093A6" />
+                        <Cell fill="#5AC278" />
+                        <Cell fill="#f59e0b" />
+                      </Pie>
+                      <Tooltip 
+                        formatter={(value) => `${value}%`}
+                        contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e5e5', borderRadius: '8px' }}
+                      />
+                      <Legend 
+                        verticalAlign="bottom" 
+                        height={36}
+                        formatter={(value, entry) => (
+                          <span style={{ color: entry.color, fontSize: '14px' }}>
+                            {value}: {entry.payload.value.toFixed(0)}%
+                          </span>
+                        )}
+                      />
+                    </RechartsPieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+
+            {/* Scenario Comparison Table */}
+            {waterfall && scenarios.length > 0 && (
+              <div className="mt-6 bg-white rounded-xl p-6 border border-gray-100">
+                <div className="flex items-center justify-between mb-6">
+                  <h4 className="text-lg font-montserrat font-semibold text-intrepid-dark">
+                    Scenario Comparison
+                  </h4>
+                  <span className="text-xs font-open-sans text-intrepid-dark/50 uppercase tracking-wider">All Scenarios</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-intrepid-gray/20">
+                        <th className="text-left py-2 font-montserrat font-semibold text-intrepid-dark">Scenario</th>
+                        <th className="text-right py-2 font-montserrat font-semibold text-intrepid-dark">Exit Value</th>
+                        <th className="text-right py-2 font-montserrat font-semibold text-intrepid-dark">Founder Return</th>
+                        <th className="text-right py-2 font-montserrat font-semibold text-intrepid-dark">Investor Multiple</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {scenarios.map(scenario => {
+                        const w = calculateWaterfall(scenario.exitValuation, scenario.yearsToExit);
+                        return (
+                          <tr key={scenario.id} className="border-b border-intrepid-gray/10">
+                            <td className="py-2 font-open-sans">
+                              {scenario.name}
+                              {scenario.active && <span className="ml-2 text-xs text-intrepid-green">(current)</span>}
+                            </td>
+                            <td className="text-right py-2 font-open-sans text-intrepid-dark/80">
+                              ${(scenario.exitValuation / 1000000).toFixed(0)}M
+                            </td>
+                            <td className="text-right py-2 font-open-sans font-semibold text-intrepid-green">
+                              ${w ? (w.founderReturn / 1000000).toFixed(1) : '0'}M
+                            </td>
+                            <td className="text-right py-2 font-open-sans text-intrepid-blue">
+                              {w ? w.investorMultiple.toFixed(1) : '0'}x
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+            
+            {/* Export Options */}
+            <div className="mt-8 p-4 bg-gray-50 rounded-xl flex flex-wrap items-center justify-between">
+              <span className="text-xs font-montserrat font-semibold text-intrepid-dark/60 uppercase tracking-wider mb-2 sm:mb-0">Export Options</span>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={exportToCSV}
+                  className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg hover:shadow-sm transition-all font-open-sans text-sm text-intrepid-dark border border-gray-200"
+                >
+                  <Download className="h-4 w-4 text-intrepid-green" />
+                  CSV
+                </button>
+                <button
+                  onClick={() => window.print()}
+                  className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg hover:shadow-sm transition-all font-open-sans text-sm text-intrepid-dark border border-gray-200"
+                >
+                  <Printer className="h-4 w-4 text-intrepid-blue" />
+                  Print
+                </button>
+                <button
+                  onClick={shareResults}
+                  className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg hover:shadow-sm transition-all font-open-sans text-sm text-intrepid-dark border border-gray-200"
+                >
+                  <Share2 className="h-4 w-4 text-intrepid-green" />
+                  Share
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Results Section */}
         {analysis && analysis.investmentTerms && analysis.liquidation && (
           <>
             {/* Key Metrics Dashboard */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white rounded-lg shadow-lg p-6 border-t-4 border-intrepid-green hover:shadow-xl transition-shadow">
+              <div className="bg-white rounded-xl p-6 border border-gray-100 hover:shadow-sm transition-all">
                 <div className="flex flex-col">
                   <div className="flex items-center justify-between mb-3">
-                    <div className="h-12 w-12 bg-intrepid-green/10 rounded-lg flex items-center justify-center">
-                      <DollarSign className="h-6 w-6 text-intrepid-green" />
+                    <div className="h-10 w-10 bg-gradient-to-br from-intrepid-green/10 to-intrepid-green/5 rounded-lg flex items-center justify-center">
+                      <DollarSign className="h-5 w-5 text-intrepid-green" />
                     </div>
-                    <span className="text-xs font-open-sans text-intrepid-green font-semibold uppercase tracking-wider">Investment</span>
+                    <span className="text-xs font-open-sans text-intrepid-dark/50 uppercase tracking-wider">Investment</span>
                   </div>
-                  <span className="text-3xl font-montserrat font-bold text-intrepid-dark">
+                  <span className="text-2xl font-montserrat font-bold text-intrepid-dark">
                     ${((analysis.investmentTerms?.investment || 0) / 1000000).toFixed(1)}M
                   </span>
-                  <p className="text-sm text-intrepid-dark/60 font-open-sans mt-2">Total Funding</p>
+                  <p className="text-sm text-intrepid-dark/60 font-open-sans mt-1">Total Funding</p>
                 </div>
               </div>
               
-              <div className="bg-white rounded-lg shadow-lg p-6 border-t-4 border-intrepid-blue hover:shadow-xl transition-shadow">
+              <div className="bg-white rounded-xl p-6 border border-gray-100 hover:shadow-sm transition-all">
                 <div className="flex flex-col">
                   <div className="flex items-center justify-between mb-3">
-                    <div className="h-12 w-12 bg-intrepid-blue/10 rounded-lg flex items-center justify-center">
-                      <PieChart className="h-6 w-6 text-intrepid-blue" />
+                    <div className="h-10 w-10 bg-gradient-to-br from-intrepid-blue/10 to-intrepid-blue/5 rounded-lg flex items-center justify-center">
+                      <PieChart className="h-5 w-5 text-intrepid-blue" />
                     </div>
-                    <span className="text-xs font-open-sans text-intrepid-blue font-semibold uppercase tracking-wider">Equity</span>
+                    <span className="text-xs font-open-sans text-intrepid-dark/50 uppercase tracking-wider">Equity</span>
                   </div>
-                  <span className="text-3xl font-montserrat font-bold text-intrepid-dark">
+                  <span className="text-2xl font-montserrat font-bold text-intrepid-dark">
                     {analysis.investmentTerms?.statedOwnershipPct || 0}%
                   </span>
-                  <p className="text-sm text-intrepid-dark/60 font-open-sans mt-2">Investor Share</p>
+                  <p className="text-sm text-intrepid-dark/60 font-open-sans mt-1">Investor Share</p>
                 </div>
               </div>
               
-              <div className="bg-white rounded-lg shadow-lg p-6 border-t-4 border-intrepid-green hover:shadow-xl transition-shadow">
+              <div className="bg-white rounded-xl p-6 border border-gray-100 hover:shadow-sm transition-all">
                 <div className="flex flex-col">
                   <div className="flex items-center justify-between mb-3">
-                    <div className="h-12 w-12 bg-intrepid-green/10 rounded-lg flex items-center justify-center">
-                      <Target className="h-6 w-6 text-intrepid-green" />
+                    <div className="h-10 w-10 bg-gradient-to-br from-intrepid-green/10 to-intrepid-green/5 rounded-lg flex items-center justify-center">
+                      <Target className="h-5 w-5 text-intrepid-green" />
                     </div>
-                    <span className="text-xs font-open-sans text-intrepid-green font-semibold uppercase tracking-wider">Valuation</span>
+                    <span className="text-xs font-open-sans text-intrepid-dark/50 uppercase tracking-wider">Valuation</span>
                   </div>
-                  <span className="text-3xl font-montserrat font-bold text-intrepid-dark">
+                  <span className="text-2xl font-montserrat font-bold text-intrepid-dark">
                     ${((analysis.investmentTerms?.postMoney || 0) / 1000000).toFixed(1)}M
                   </span>
-                  <p className="text-sm text-intrepid-dark/60 font-open-sans mt-2">Post-Money</p>
+                  <p className="text-sm text-intrepid-dark/60 font-open-sans mt-1">Post-Money</p>
                 </div>
               </div>
               
-              <div className="bg-white rounded-lg shadow-lg p-6 border-t-4 border-intrepid-blue hover:shadow-xl transition-shadow">
+              <div className="bg-white rounded-xl p-6 border border-gray-100 hover:shadow-sm transition-all">
                 <div className="flex flex-col">
                   <div className="flex items-center justify-between mb-3">
-                    <div className="h-12 w-12 bg-intrepid-blue/10 rounded-lg flex items-center justify-center">
-                      <Shield className="h-6 w-6 text-intrepid-blue" />
+                    <div className="h-10 w-10 bg-gradient-to-br from-intrepid-blue/10 to-intrepid-blue/5 rounded-lg flex items-center justify-center">
+                      <Shield className="h-5 w-5 text-intrepid-blue" />
                     </div>
-                    <span className="text-xs font-open-sans text-intrepid-blue font-semibold uppercase tracking-wider">Preference</span>
+                    <span className="text-xs font-open-sans text-intrepid-dark/50 uppercase tracking-wider">Preference</span>
                   </div>
-                  <span className="text-3xl font-montserrat font-bold text-intrepid-dark">
+                  <span className="text-2xl font-montserrat font-bold text-intrepid-dark">
                     {analysis.liquidation?.liqPrefMultiple || 1}x
                   </span>
-                  <p className="text-sm text-intrepid-dark/60 font-open-sans mt-2">Liquidation Multiple</p>
+                  <p className="text-sm text-intrepid-dark/60 font-open-sans mt-1">Liquidation Multiple</p>
                 </div>
               </div>
             </div>
@@ -823,89 +1540,27 @@ IMPORTANT: Extract whatever you can find. It's better to have partial data than 
               </div>
             </div>
           )}
-
-            {/* Waterfall Calculator */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h3 className="text-lg font-montserrat font-semibold mb-4 flex items-center text-intrepid-dark">
-                <Calculator className="mr-2 text-intrepid-blue" /> Exit Waterfall Calculator
-              </h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div>
-                  <label className="block text-sm font-montserrat font-semibold text-intrepid-dark mb-1">
-                    Exit Valuation ($M)
-                  </label>
-                  <input
-                    type="number"
-                    value={exitScenario.exitValuation / 1000000}
-                    onChange={(e) => setExitScenario({
-                      ...exitScenario,
-                      exitValuation: e.target.value * 1000000
-                    })}
-                    className="w-full px-3 py-2 border border-intrepid-gray/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-intrepid-green font-open-sans"
-                  />
-              </div>
-                <div>
-                  <label className="block text-sm font-montserrat font-semibold text-intrepid-dark mb-1">
-                    Years to Exit
-                  </label>
-                  <input
-                    type="number"
-                    value={exitScenario.yearsToExit}
-                    onChange={(e) => setExitScenario({
-                      ...exitScenario,
-                      yearsToExit: parseInt(e.target.value)
-                    })}
-                    className="w-full px-3 py-2 border border-intrepid-gray/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-intrepid-green font-open-sans"
-                  />
-              </div>
-            </div>
-
-            {waterfall && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-intrepid-blue/10 rounded-lg p-4 border border-intrepid-blue/20">
-                    <p className="text-sm text-intrepid-dark/70 font-open-sans mb-1">Investor Return</p>
-                    <p className="text-2xl font-montserrat font-bold text-intrepid-blue">
-                    ${(waterfall.investorReturn / 1000000).toFixed(1)}M
-                  </p>
-                    <p className="text-sm text-intrepid-dark/60 font-open-sans">
-                      {waterfall.investorMultiple.toFixed(1)}x multiple
-                    </p>
-                  </div>
-                  <div className="bg-intrepid-green/10 rounded-lg p-4 border border-intrepid-green/20">
-                    <p className="text-sm text-intrepid-dark/70 font-open-sans mb-1">Founder Return</p>
-                    <p className="text-2xl font-montserrat font-bold text-intrepid-green">
-                    ${(waterfall.founderReturn / 1000000).toFixed(1)}M
-                  </p>
-                    <p className="text-sm text-intrepid-dark/60 font-open-sans">
-                      {waterfall.founderPct.toFixed(1)}% of exit
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
           </>
         )}
       </div>
       
       {/* Footer */}
-      <footer className="bg-intrepid-dark mt-12 py-8">
+      <footer className="bg-white border-t border-gray-100 mt-12 py-8">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col md:flex-row items-center justify-between">
             <div className="flex items-center mb-4 md:mb-0">
-              <img 
-                src="/assets/logos/intrepid-triangles.svg" 
-                alt="Intrepid" 
-                className="h-8 w-auto mr-3"
-              />
+              {/* Green arrow logo */}
+              <svg width="32" height="32" viewBox="0 0 100 100" className="mr-3">
+                <path d="M20 25 L20 75 L50 50 Z" fill="#5AC278" />
+                <path d="M45 25 L45 75 L75 50 Z" fill="#5AC278" opacity="0.7" />
+              </svg>
               <div>
-                <p className="text-intrepid-green font-montserrat font-bold">INTREPID FINANCE</p>
-                <p className="text-intrepid-gray text-xs font-open-sans">providing capital for business growth</p>
+                <p className="text-intrepid-green font-montserrat font-bold">INTREPID</p>
+                <p className="text-intrepid-dark/60 text-xs font-open-sans">VC Term Sheet Analyzer</p>
               </div>
             </div>
             <div className="text-center md:text-right">
-              <p className="text-intrepid-gray text-sm font-open-sans mb-1">Powered by AI Technology</p>
-              <p className="text-intrepid-gray/60 text-xs font-open-sans">© 2024 Intrepid Finance. All rights reserved.</p>
+              <p className="text-intrepid-dark/50 text-xs font-open-sans">© 2025 Intrepid Finance. All rights reserved.</p>
             </div>
           </div>
         </div>
